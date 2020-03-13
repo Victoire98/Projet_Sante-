@@ -1,0 +1,84 @@
+---
+title: "Dataset_Neiss"
+author: "Arias Bonaud Peres"
+date: "20/02/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analyse des données de santé : épidémiologie et aide à la décision
+
+## Base de données d'intérêt (National Electronic Injury Surveillance System (NEISS))
+
+La base de données collecte les cinq dernieres années du système de surveillance, (2013-2017) du NEISS (National Electronic Injury Surveillance System) , c"est un échantillon des accidents reportés dans les salles d'urgences aux USA de 2013 à 2017. 
+Plus d'informations sont présentes sur https://github.com/hadley/neiss. 
+
+Trois datasets sont présents : 
+
+    injuries: individual injury results
+    products: product code lookup table
+    population: population of the US by age, sex, and year
+
+```{r }
+# Package from dev version in github
+# install.packages("devtools")
+# devtools::install_github("hadley/neiss")
+```
+
+Lib in linux
+`sudo apt-get install libssl-dev libxml2-dev`
+
+## Load data
+
+
+```{r}
+library("neiss")
+data <- as.data.frame(injuries)
+
+# Cleaning Dataset 
+# remove race other column
+data$race_other<- NULL
+str(data)
+
+# replace other in column Diag by the words in Diag Other and remove column diag other
+data[data$diag == 'Other Or Not Stated',]$diag<- data[data$diag == 'Other Or Not Stated',]$diag_other
+data$diag_other<- NULL
+
+```
+
+
+
+
+Transformation to categorical data 
+```{r}
+dim(data)
+data$sex <- as.factor(data$sex)
+data$body_part <- as.factor(data$body_part)
+data$location <- as.factor(data$location)
+#change others columns ....
+str(data)
+plot(data$location,xlab = "injure location", main = "Barplot")
+
+
+
+```
+
+## Just injuries from sport
+```{r}
+str(data$location)
+sport <- data[which(data$location == "Sports Or Recreation Place"),]
+```
+
+
+```{r fig.height=15}
+p <-par(mfrow=c(3,1))
+plot(sport$sex, main ="Only sports")
+plot(sport$body_part)
+plot(sport$body_part,sport$sex)
+```
+

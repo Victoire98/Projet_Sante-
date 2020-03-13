@@ -1,0 +1,133 @@
+---
+title: "Dataset_Neiss"
+author: "Arias, Bonaud, Peres"
+date: "2/20/2020"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analyse des données de santé : épidémiologie et aide à la décision
+## Base de données d'interet (National Electronic Injury Surveillance System (NEISS))
+
+La base de données collecte les cinq dernieres années du système de surveillance (2013-2017) du "National Electronic Injury Surveillance System". Cette base de données fournit les accidents signalés dans les salles d'urgence aux États-Unis.
+
+**Source** : **[lien](https://github.com/hadley/neiss)**
+Il contient trois ensembles de données : 
+
+    1. injuries: individual injury results
+    2. products: product code lookup table
+    3. population: population of the US by age, sex, and year
+
+```{r }
+#Package from dev version in github
+#install.packages("devtools")
+#devtools::install_github("hadley/neiss")
+```
+
+Lib in linux
+`sudo apt-get install libssl-dev libxml2-dev`
+
+## Load data
+
+
+```{r}
+library("neiss")
+data <- as.data.frame(injuries)
+```
+```{r}
+summary(data)
+```
+
+Transformation en données catégorielles 
+```{r}
+dim(data)
+data$sex <- as.factor(data$sex)
+data$body_part <- as.factor(data$body_part)
+data$location <- as.factor(data$location)
+#change others columns ....
+str(data)
+```
+## Les blessures dues au sport : 
+```{r}
+str(data$location)
+sport <- data[which(data$location == "Sports Or Recreation Place"),]
+```
+
+
+```{r fig.height=15, fig.width=10}
+str(data)
+```
+```{r}
+data_products <- as.data.frame(products)
+head(data_products)
+min(data_products$code)
+```
+```{r}
+data_pop <- as.data.frame(population)
+head(data_pop)
+str(data_pop)
+```
+Analyse :
+répartition des blessures parmis les blessés
+contexte des blessures
+```{r}
+head(data)
+hist(data$weight)
+
+(length(data$diag_other) - length(which(is.na(data$diag_other))))/length(data$diag_other)
+
+apply(is.na(data),2,which)
+
+ind <- !is.na(data$diag_other)
+unique(data$diag[ind])
+
+data[data$diag == 'Other Or Not Stated',]$diag<- data[data$diag == 'Other Or Not Stated',]$diag_other
+data$diag_other<- NULL
+data$race_other<- NULL
+ind <- is.na(data$prod2)
+data$prod2[ind] <- 0
+is.na(data)
+# race_other, diag_other, disposition, prod2
+```
+--> pour tous les other or not stated et seulement pour eux le diag est dans diag_2
+```{r}
+unique(data$disposition)
+hist(data$prod2)
+data$disposition <- as.factor(data$disposition)
+```
+
+
+```{r}
+
+library(mltools)
+library(data.table)
+data$body_part <-(as.factor(data$body_part))
+new_data <- one_hot(as.data.table(data),cols = "body_part")
+new_data$body_part_enc <- NULL
+new_data$race <- NULL
+new_data$race_other <- NULL
+new_data$sex <-(as.factor(new_data$sex))
+new_data$location <-(as.factor(new_data$location))
+which(!is.na(new_data$prod2))
+
+(length(new_data$prod2) - length(which(is.na(new_data$prod2))))/length(new_data$prod2)
+
+length(which(is.na(new_data$prod1)))
+
+ind <- is.na(new_data$prod2)
+new_data$prod2[ind] <- 0
+hist(new_data$prod)
+```
+dataset : 
+- clean
+- corrélation entre variable
+- expliquer chaque variable séparemment et répartition
+- test de significativité
+- PCA
+"one hot encoding" --> remplacer chaines caractère de variableà prédire par série de 0 et avec un 1 (plus facile pour construire le modèle ensuite)
