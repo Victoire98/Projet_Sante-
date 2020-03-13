@@ -80,7 +80,6 @@ data$diag_other<- NULL
 data$race_other<- NULL
 ind <- is.na(data$prod2)
 data$prod2[ind] <- 0
-is.na(data)
 # race_other, diag_other, disposition, prod2
 ```
 --> pour tous les other or not stated et seulement pour eux le diag est dans diag_2
@@ -121,4 +120,11 @@ data$diag <-(as.factor(data$diag))
 data$disposition <-(as.factor(data$disposition))
 data$fmv <-(as.factor(data$fmv))
 data$stratum <-(as.factor(data$stratum))
+
+#save data
+save(data,file="dataset.Rdata")
 ```
+
+
+
+### data clean
