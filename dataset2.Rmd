@@ -8,9 +8,6 @@ output:
   pdf_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 # Analyse des données de santé : épidémiologie et aide à la décision
 ## Base de données d'interet (National Electronic Injury Surveillance System (NEISS))
@@ -63,16 +60,7 @@ sport <- data[which(data$location == "Sports Or Recreation Place"),]
 ```{r fig.height=15, fig.width=10}
 str(data)
 ```
-```{r}
-data_products <- as.data.frame(products)
-head(data_products)
-min(data_products$code)
-```
-```{r}
-data_pop <- as.data.frame(population)
-head(data_pop)
-str(data_pop)
-```
+ 
 Analyse :
 répartition des blessures parmis les blessés
 contexte des blessures
@@ -108,21 +96,8 @@ data$disposition <- as.factor(data$disposition)
 library(mltools)
 library(data.table)
 data$body_part <-(as.factor(data$body_part))
-new_data <- one_hot(as.data.table(data),cols = "body_part")
-new_data$body_part_enc <- NULL
-new_data$race <- NULL
-new_data$race_other <- NULL
-new_data$sex <-(as.factor(new_data$sex))
-new_data$location <-(as.factor(new_data$location))
-which(!is.na(new_data$prod2))
+data <- one_hot(as.data.table(data),cols = "body_part")
 
-(length(new_data$prod2) - length(which(is.na(new_data$prod2))))/length(new_data$prod2)
-
-length(which(is.na(new_data$prod1)))
-
-ind <- is.na(new_data$prod2)
-new_data$prod2[ind] <- 0
-hist(new_data$prod)
 ```
 dataset : 
 - clean
@@ -131,3 +106,19 @@ dataset :
 - test de significativité
 - PCA
 "one hot encoding" --> remplacer chaines caractère de variableà prédire par série de 0 et avec un 1 (plus facile pour construire le modèle ensuite)
+
+
+```{r}
+
+library(mltools)
+library(data.table)
+data$body_part <-(as.factor(data$body_part))
+data <- one_hot(as.data.table(data),cols = "body_part")
+
+#to factor
+data$race <-(as.factor(data$race))
+data$diag <-(as.factor(data$diag))
+data$disposition <-(as.factor(data$disposition))
+data$fmv <-(as.factor(data$fmv))
+data$stratum <-(as.factor(data$stratum))
+```
