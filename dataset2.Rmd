@@ -50,30 +50,11 @@ data$location <- as.factor(data$location)
 #change others columns ....
 str(data)
 ```
-## Les blessures dues au sport : 
-```{r}
-str(data$location)
-sport <- data[which(data$location == "Sports Or Recreation Place"),]
-```
-
-
-```{r fig.height=15, fig.width=10}
-str(data)
-```
- 
 Analyse :
 répartition des blessures parmis les blessés
 contexte des blessures
 ```{r}
-head(data)
-hist(data$weight)
 
-(length(data$diag_other) - length(which(is.na(data$diag_other))))/length(data$diag_other)
-
-apply(is.na(data),2,which)
-
-ind <- !is.na(data$diag_other)
-unique(data$diag[ind])
 
 data[data$diag == 'Other Or Not Stated',]$diag<- data[data$diag == 'Other Or Not Stated',]$diag_other
 data$diag_other<- NULL
@@ -84,14 +65,26 @@ data$prod2[ind] <- 0
 ```
 --> pour tous les other or not stated et seulement pour eux le diag est dans diag_2
 ```{r}
+
+#hist(data$prod2)
+#disposition
+ind <- is.na(data$disposition)
+data$disposition[ind] <- "Other"
 unique(data$disposition)
-hist(data$prod2)
 data$disposition <- as.factor(data$disposition)
+
+#to factor
+data$race <-(as.factor(data$race))
+data$diag <-(as.factor(data$diag))
+data$disposition <-(as.factor(data$disposition))
+data$fmv <-(as.factor(data$fmv))
+data$stratum <-(as.factor(data$stratum))
+str(data)
 ```
 
 
 ```{r}
-
+#install.packages("mltools")
 library(mltools)
 library(data.table)
 data$body_part <-(as.factor(data$body_part))
@@ -108,19 +101,6 @@ dataset :
 
 
 ```{r}
-
-library(mltools)
-library(data.table)
-data$body_part <-(as.factor(data$body_part))
-data <- one_hot(as.data.table(data),cols = "body_part")
-
-#to factor
-data$race <-(as.factor(data$race))
-data$diag <-(as.factor(data$diag))
-data$disposition <-(as.factor(data$disposition))
-data$fmv <-(as.factor(data$fmv))
-data$stratum <-(as.factor(data$stratum))
-
 #save data
 save(data,file="dataset.Rdata")
 ```
