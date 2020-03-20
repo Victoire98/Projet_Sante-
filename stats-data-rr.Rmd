@@ -1,0 +1,113 @@
+---
+title: "stats_camila"
+author: "cvt"
+date: "3/18/2020"
+output: html_document
+---
+
+##  Code stats descriptives
+1. load data
+change workdirectory and load dataset after cleaning
+
+```{r}
+path = "~/Documents/3eme-annee/Data R/Projet_Sante-/"
+setwd(path)
+load("dataset.Rdata")
+str(data)
+```
+
+2. Description
+In order to analyze the dataset, we change onehotencoding to factor. Then, some columns are not necessary (case_num and onehotencoding) so they become null. 
+
+To factor : 'prod1' and 'prod2' are codes from products that means they are categorical data (tofactor)
+```{r}
+#data[6:31] 
+## Onehot Encoding to factor
+data.stats <- data
+data.stats$output <- (substring(names(data[,6:31]),first = 11)[max.col(data[,6:31])])
+data.stats[,6:31] <- NULL
+data.stats$case_num <- NULL
+data.stats$output <- as.factor(data.stats$output)
+#products as factor
+data.stats$prod1 <- as.factor(data.stats$prod1)
+data.stats$prod2 <- as.factor(data.stats$prod2)
+```
+
+3. Numerical 
+```{r}
+num <- Filter(is.numeric, data.stats)
+print(names(num))
+
+
+boxplot(num)
+```
+### C'est quoi `psu` et `weight` ?
+```{r}
+summary(num)
+```
+
+4. Categorical data (factor)
+```{r}
+plot(sort(table(data.stats$output),decreasing = TRUE))
+```
+
+
+
+```{r}
+toFrequence <- function(x) {
+        as.data.frame(sort(table(x),decreasing = TRUE))
+}
+fac <- Filter(is.factor, data.stats)
+summary(fac)
+```
+Graphics contigence tables
+```{r}
+library(ggplot2)
+#install.packages("ggpubr")
+library(ggpubr)
+#analyse location and output
+cont.table.loc <- as.data.frame(prop.table(table(data.stats$location,data.stats$output)))
+cont.table.sex <- as.data.frame(prop.table(table(data.stats$sex,data.stats$output)))
+cont.table.race <- as.data.frame(prop.table(table(data.stats$race,data.stats$output)))
+par(mfrow = c(3,1))
+ggballoonplot(cont.table.loc, fill = "value")+
+  scale_fill_viridis_c(option = "C")
+ggballoonplot(cont.table.sex, fill = "value")+
+  scale_fill_viridis_c(option = "C")
+ggballoonplot(cont.table.race, fill = "value")+
+  scale_fill_viridis_c(option = "C")
+
+```
+# Component analysis
+```{r}
+
+library(FactoMineR)
+library(factoextra)
+#other
+par(mfrow =c(3,1))
+
+cont.table.loc <- ((table(data.stats$location,data.stats$output)))
+res.ca <- CA(cont.table.loc, graph = FALSE)
+fviz_ca_biplot(res.ca, repel = TRUE, title = "CA location and output")
+
+cont.table.str <- ((table(data.stats$stratum,data.stats$output)))
+res.ca <- CA(cont.table.str, graph = FALSE)
+fviz_ca_biplot(res.ca, repel = TRUE, title = "CA stratum and output")
+
+```
+
+
+```{r}
+#cross the time
+months <- format(data.stats$trmt_date, "%Y-%m")
+age.mean <- aggregate(data.stats["age"],by=list(months), mean)
+age.min <- aggregate(data.stats["age"],by=list(months), min)
+age.max <- aggregate(data.stats["age"],by=list(months), max)
+
+
+plot(age.mean[,2],type="l", ylim = c(0,150),xlab = "")
+lines(age.max[,2],col = "dark red")
+lines(age.min[,2],col = "dark blue")
+axis(3, at= seq(1,60,10),labels= age.mean[seq(1,60,10),1])
+```
+
