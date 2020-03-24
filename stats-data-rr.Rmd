@@ -2,7 +2,7 @@
 title: "stats_camila"
 author: "cvt"
 date: "3/18/2020"
-output: html_document
+output: html_notebook
 ---
 
 ##  Code stats descriptives
@@ -37,29 +37,73 @@ data.stats$prod2 <- as.factor(data.stats$prod2)
 ```{r}
 num <- Filter(is.numeric, data.stats)
 print(names(num))
-
-
 boxplot(num)
 ```
 ### C'est quoi `psu` et `weight` ?
 ```{r}
 summary(num)
+
+```
+```{r}
+library("ggplot2")
+get.table.freq <- function(x) {
+                #cut variable in groups using Sturges's rule
+                factorx <- factor(cut(x, breaks=nclass.Sturges(x)))
+                xout <- as.data.frame(table(factorx))
+                #Add cumFreq and proportions
+                xout <- transform(xout, cumFreq = cumsum(Freq), relative = prop.table(Freq))
+}
+age <- get.table.freq(data.stats$age)
+psu <- get.table.freq(data.stats$psu)
+weight <- get.table.freq(data.stats$weight)
+
+ggplot(data =  age, aes(x = factorx, y = relative))+
+  geom_bar(stat="identity")
+ggplot(data =  psu, aes(x = factorx, y = relative))+
+  geom_bar(stat="identity")
+ggplot(data =  weight, aes(x = factorx, y = relative))+
+  geom_bar(stat="identity")
 ```
 
 4. Categorical data (factor)
 ```{r}
-plot(sort(table(data.stats$output),decreasing = TRUE))
+summary( Filter(is.factor, data.stats))
+print(str(Filter(is.factor, data.stats)))
 ```
-
-
 
 ```{r}
-toFrequence <- function(x) {
-        as.data.frame(sort(table(x),decreasing = TRUE))
+get_proportion <- function(x) {
+                #as.data.frame(prop.table(sort(table(x),decreasing = TRUE)))
+                as.data.frame((sort(table(x),decreasing = TRUE)))
 }
-fac <- Filter(is.factor, data.stats)
-summary(fac)
+plot(get_proportion(data.stats$output))
+print(get_proportion(data.stats$output))
 ```
+## on a fait un merge entre diag et diag autre. Est-ce un bon choix ?
+```{r}
+str(data.stats$diag)
+print(unique(data.stats$diag))
+print(get_proportion(data.stats$diag))
+```
+
+- Prod1
+
+```{r}
+str(data.stats$prod1)
+print(get_proportion(data.stats$prod1))
+#on laisse les codes?
+```
+5. 
+```{r}
+str(data.stats$prod2)
+print(get_proportion(data.stats$prod2))
+
+```
+```{r}
+
+```
+
+
 Graphics contigence tables
 ```{r}
 library(ggplot2)
@@ -93,6 +137,10 @@ fviz_ca_biplot(res.ca, repel = TRUE, title = "CA location and output")
 cont.table.str <- ((table(data.stats$stratum,data.stats$output)))
 res.ca <- CA(cont.table.str, graph = FALSE)
 fviz_ca_biplot(res.ca, repel = TRUE, title = "CA stratum and output")
+
+```
+```{r}
+
 
 ```
 
