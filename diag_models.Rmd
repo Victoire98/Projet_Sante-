@@ -1,0 +1,37 @@
+---
+title: "diag_models"
+output: html_document
+---
+
+```{r cars}
+# to avoid illegal names
+load("../data_set_cor.Rdata")
+data_set_cor <- data
+names(data_set_cor) <- make.names(names(data_set_cor))
+
+library("randomForest")
+
+length(unique(train_data$diag))
+
+data_set_cor$count_diag <- 0
+for (column in unique(data_set_cor$diag)){
+  ind <- (data_set_cor$diag == column)
+  data_set_cor$count_diag[ind] <- length(data_set_cor$diag[ind])
+}
+
+#ind_cons <- ((data_set_cor$count_diag >= 15))
+#length(unique(data_set_cor$diag[ind_cons]))
+data_set_tree <- subset(data_set_cor, count_diag >= 1000)[2:39]
+set_size <- dim(data_set_tree)[1]
+test_size <- round(0.2 * set_size)
+
+train_data = data_set_tree[1:(set_size - test_size),]
+test_data = data_set_tree[(set_size - test_size):set_size,]
+
+unique(train_data$diag)
+fit2 <- randomForest(diag~., data = train_data,ntree = 50)
+yperf_forest = predict(fit2,test_data)
+
+```
+
+

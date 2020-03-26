@@ -1,0 +1,39 @@
+---
+title: "autocorr_study"
+output: html_document
+---
+
+
+
+```{r cars}
+library("corrplot")
+load("dataset.Rdata")
+data_set <- data
+data_set_cor <- data
+data<- NULL
+print(dim(data_set))
+head(data_set)
+data_set_cor$sex = as.numeric(data_set$sex)
+data_set_cor$race = as.numeric(data_set$race)
+data_set_cor$diag = as.numeric(data_set$diag)
+data_set_cor$disposition = as.numeric(data_set$disposition)
+data_set_cor$location = as.numeric(data_set$location)
+data_set_cor$fmv = as.numeric(data_set$fmv)
+data_set_cor$stratum = as.numeric(data_set$stratum)
+data_set_cor$prod1 = as.numeric(data_set$prod1)
+data_set_cor$prod2 = as.numeric(data_set$prod2)
+
+corrplot(cor(data_set_cor[2:39]))
+cor_mat <- cor(data_set_cor[2:39])
+
+ind_inf <- (cor_mat < -0.5)
+correlated_inf <- cor_mat[ind_inf]
+length(correlated_inf)
+
+ind_sup <- (cor_mat > 0.5)
+correlated_sup <- cor_mat[ind_sup]
+length(correlated_sup)
+save(data_set_tree,file="../data_set_cor.Rdata")
+# length of correlated attributes are none or 38 (which is the number of attributes, excluding narrative. There are no correlations between any attributes.) 
+
+```
