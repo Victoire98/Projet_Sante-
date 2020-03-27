@@ -33,7 +33,6 @@ Afin d'analyser l'ensemble des données, nous changeons le codage unique en fact
 data.stats <- data
 data.stats$output <- (substring(names(data[,5:30]),first = 11)[max.col(data[,5:30])])
 data.stats[,5:30] <- NULL
-data.stats$case_num <- NULL
 data.stats$output <- as.factor(data.stats$output)
 #products as factor
 ```

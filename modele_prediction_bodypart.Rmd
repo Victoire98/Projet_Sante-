@@ -1,0 +1,206 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+**Note** : 
+
+#### Dans la base de données originale, il n'y a que 31 diagnostics reconnus, ce n'est pas une bonne idée de les laisser dans une seule colonne. Cela génère plus de 15 000 diagnostics 
+```{r}
+library("dplyr")
+#date
+library("lubridate")
+#data manipulation,
+library(tidyr)
+library(ggplot2)
+```
+
+```{r}
+#change in diagnostic
+path = "~/Documents/3eme-annee/Data R/Projet_Sante-/"
+setwd(path)
+load("dataset.Rdata")
+library("neiss")
+original <- as.data.frame(injuries)
+
+
+#-----new dataset to make the model
+## ------Onehot Encoding to factor
+data.model <- data
+data.model$output <- (substring(names(data[,5:30]),first = 11)[max.col(data[,5:30])])
+data.model[,5:30] <- NULL
+data.model$output <- as.factor(data.model$output)
+#put the original vector
+data.model$diag <- as.factor(original$diag)
+data.model$date <- data.model$trmt_date
+data.model$trmt_date <- NULL
+print(str(data.model$diag))
+```
+1. description du dataset 
+```{r}
+data.model <- subset(data.model, select=c(date,age:output))
+str(data.model)
+```
+```{r}
+data.model$fmv <- NULL
+data.model$psu <- NULL
+data.model$weight <- NULL
+data.model$narrative <- NULL
+summary(data.model)
+##### save
+save(data.model,file="dataset_model.Rdata")
+```
+
+# Premier approach
+
+---------------------------------
+summary
+## Tendance
+```{r}
+load("./dataset_model.Rdata")
+
+le_month <- data.model %>%
+  mutate(Year = date %>% year(),
+         Month = date %>% month(),
+         YearMonth = ymd(paste0(Year, "-", Month, "-01"))) %>%
+  group_by(Year, YearMonth) %>%
+  tally()
+head(le_month)  
+
+ggplot(le_month,aes(x=YearMonth, y=n)) +
+facet_wrap(~Year, scales = "free_x", ncol = 4) +
+geom_line() +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations")
+
+```
+        
+# count by factor  
+```{r}
+gather(df, key, value, -owner) %>% 
+    count(owner, key, value) %>% 
+    spread(value, n, fill = 0)
+```
+     
+
+
+
+# ------ modele un jour
+
+ 
+# factor
+
+Model en utilisant que 15 jours
+
+```{r}
+library(caret)
+un.jour.factor <- data.model[data.model$date >= "2017-11-30",]
+set_size <- dim(un.jour.factor)[1]
+test_size <- round(0.2 * set_size)
+
+train_data = un.jour.factor[1:(set_size - test_size),]
+test_data = un.jour.factor[(set_size - test_size):set_size,]
+##rpart
+set.seed(12345)
+# Training with classification tree
+# Training with Random forest model
+#library(doParallel)
+#cl <- makePSOCKcluster(5)
+#registerDoParallel(cl)
+
+## All subsequent models are then run in parallel
+model <- train(y ~ ., data = training, method = "rf")
+
+## When you are done:
+stopCluster(cl)
+```
+
+
+
+
+
+#random fr
+
+```{r}
+library(randomForest)
+rf <- randomForest( output ~. , data = train_data, ntree=100)
+#plot importance of variables
+varImpPlot(rf)
+```
+
+ ##
+
+# NEW DATASET
+## get data and cleaning
+```{r}
+un.jour <- data.model[data.model$date >= "2017-12-24",]
+
+# 1. to onehot
+un.jour.enc <- model.matrix(output ~ ., data = un.jour)
+####2. Zero- and Near Zero-Variance Predictors
+nzv <- nearZeroVar(un.jour.enc, saveMetrics= TRUE)
+#top10
+print(nzv[nzv$nzv,][1:10,])
+
+#### 3. remove zero variance
+nzv <- nearZeroVar(un.jour.enc)
+un.jour.filter <- un.jour.enc[, -nzv]
+dim(un.jour.filter)
+```
+#4. Identifying Correlated Predictors
+
+```{r}
+
+library(corrplot)
+descrCor <-  cor(un.jour.filter)
+corrplot(descrCor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+
+```
+```{r}
+print(sum(abs(descrCor[upper.tri(descrCor)]) > .999))
+```
+# data split
+```{r}
+set.seed(3456)
+trainIndex <- createDataPartition(un.jour$output, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+dataTrain <- un.jour.filter[ trainIndex,]
+data.train <- as.data.frame(dataTrain)
+#data.train <- cbind(dataTrain, un.jour[ trainIndex,"output"])  
+data.train$output <- un.jour[ trainIndex,"output"]
+
+dataTest  <- un.jour.filter[-trainIndex,]
+#data.test <- cbind(dataTest, un.jour[-trainIndex,"output"])
+data.test <- as.data.frame(dataTest)
+data.test$output <- un.jour[ -trainIndex,"output"]
+
+data.train$date <- NULL
+data.test$date <- NULL
+```
+
+#model
+
+```{r}
+#svm
+  
+  
+set.seed(3456)
+library(doParallel)
+
+cl <- makePSOCKcluster(4)
+#registerDoParallel(cl)
+
+## All subsequent models are then run in parallel
+svm.fit <- train(output ~., data = data.train, 
+                 method = "lssvmLinear", 
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = TRUE)
+## When you are done:
+stopCluster(cl)
+```
+  
+
+        
