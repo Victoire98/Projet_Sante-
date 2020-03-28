@@ -13,6 +13,10 @@ library("lubridate")
 #data manipulation,
 library(tidyr)
 library(ggplot2)
+library(doParallel)
+library(randomForest)
+library(caret)
+
 ```
 
 ```{r}
@@ -67,6 +71,7 @@ le_month <- data.model %>%
   tally()
 head(le_month)  
 
+
 ggplot(le_month,aes(x=YearMonth, y=n)) +
 facet_wrap(~Year, scales = "free_x", ncol = 4) +
 geom_line() +
@@ -90,29 +95,29 @@ gather(df, key, value, -owner) %>%
  
 # factor
 
-Model en utilisant que 15 jours
+Model en utilisant que 10000
 
 ```{r}
-library(caret)
-un.jour.factor <- data.model[data.model$date >= "2017-11-30",]
+index <- sample(1:nrow(data.model), 100000)
+un.jour.factor <- data.model[index,]
 set_size <- dim(un.jour.factor)[1]
 test_size <- round(0.2 * set_size)
 
+# to numeric
+factor.jour <- Filter(is.factor,un.jour.factor)
+for(col in names(factor.jour)){
+  un.jour.factor[,col] <- as.numeric(un.jour.factor[,col])
+}
+un.jour.factor$output <- as.factor(un.jour.factor$output)
+
+print(str(un.jour.factor))
 train_data = un.jour.factor[1:(set_size - test_size),]
 test_data = un.jour.factor[(set_size - test_size):set_size,]
 ##rpart
-set.seed(12345)
 # Training with classification tree
 # Training with Random forest model
-#library(doParallel)
-#cl <- makePSOCKcluster(5)
 #registerDoParallel(cl)
 
-## All subsequent models are then run in parallel
-model <- train(y ~ ., data = training, method = "rf")
-
-## When you are done:
-stopCluster(cl)
 ```
 
 
@@ -122,10 +127,21 @@ stopCluster(cl)
 #random fr
 
 ```{r}
-library(randomForest)
-rf <- randomForest( output ~. , data = train_data, ntree=100)
+set.seed(12345)
+rfnum <- randomForest( output ~. , data = train_data, ntree = 200)
+print(rfnum)
 #plot importance of variables
+```
+```{r}
 varImpPlot(rf)
+perf_test_rf <- predict(rf, test_data)
+
+perf_test_rf
+```
+
+```{r}
+rf.mil <- randomForest( output ~. , data = train_data, ntree = 1000)
+print(rf.mil)
 ```
 
  ##
@@ -133,18 +149,19 @@ varImpPlot(rf)
 # NEW DATASET
 ## get data and cleaning
 ```{r}
-un.jour <- data.model[data.model$date >= "2017-12-24",]
-
-# 1. to onehot
+index <- sample(1:nrow(data.model), 50000)
+#un.jour <- data.model[data.model$date >= "2017-12-24",]
+un.jour <- data.model[index,]
 un.jour.enc <- model.matrix(output ~ ., data = un.jour)
 ####2. Zero- and Near Zero-Variance Predictors
-nzv <- nearZeroVar(un.jour.enc, saveMetrics= TRUE)
+#nzv <- nearZeroVar(un.jour.enc, saveMetrics= TRUE)
 #top10
-print(nzv[nzv$nzv,][1:10,])
+#print(nzv[nzv$nzv,][1:10,])
 
 #### 3. remove zero variance
 nzv <- nearZeroVar(un.jour.enc)
 un.jour.filter <- un.jour.enc[, -nzv]
+un.jour.enc <- NULL
 dim(un.jour.filter)
 ```
 #4. Identifying Correlated Predictors
@@ -166,18 +183,21 @@ trainIndex <- createDataPartition(un.jour$output, p = .8,
                                   list = FALSE, 
                                   times = 1)
 
-dataTrain <- un.jour.filter[ trainIndex,]
-data.train <- as.data.frame(dataTrain)
+data.train <- as.data.frame(un.jour.filter[ trainIndex,])
 #data.train <- cbind(dataTrain, un.jour[ trainIndex,"output"])  
 data.train$output <- un.jour[ trainIndex,"output"]
 
-dataTest  <- un.jour.filter[-trainIndex,]
+data.test <-  as.data.frame(un.jour.filter[-trainIndex,])
 #data.test <- cbind(dataTest, un.jour[-trainIndex,"output"])
-data.test <- as.data.frame(dataTest)
 data.test$output <- un.jour[ -trainIndex,"output"]
 
-data.train$date <- NULL
-data.test$date <- NULL
+#data.train$date <- NULL
+#data.test$date <- NULL
+
+##change names
+names(data.train) <- gsub(" |,","",names(data.train))
+names(data.test) <- gsub(" |,","",names(data.test))
+names(data.test)
 ```
 
 #model
@@ -185,22 +205,162 @@ data.test$date <- NULL
 ```{r}
 #svm
   
-  
-set.seed(3456)
-library(doParallel)
+set.seed(12345)
+rf <- randomForest( output ~. , data = data.train, ntree = 1500)
+print(rf)
 
-cl <- makePSOCKcluster(4)
-#registerDoParallel(cl)
 
-## All subsequent models are then run in parallel
-svm.fit <- train(output ~., data = data.train, 
-                 method = "lssvmLinear", 
-                 ## This last option is actually one
-                 ## for gbm() that passes through
-                 verbose = TRUE)
-## When you are done:
-stopCluster(cl)
 ```
-  
+```{r}
+varImpPlot(rf)
+```
 
-        
+```{r}
+plot(rf, main = "Error rate of random forest")
+```
+---------------
+other approach
+
+```{r}
+index <- sample(1:nrow(data.model), 100000)
+un.jour.factor <- data.model[index,]
+set_size <- dim(un.jour.factor)[1]
+test_size <- round(0.2 * set_size)
+
+# to numeric
+factor.jour <- Filter(is.factor,un.jour.factor)
+for(col in names(factor.jour)){
+  un.jour.factor[,col] <- as.numeric(un.jour.factor[,col])
+}
+un.jour.factor$output <- as.factor(data.model[index,"output"])
+
+print(str(un.jour.factor))
+
+##rpart
+# Training with classification tree
+# Training with Random forest model
+#registerDoParallel(cl)
+nzv <- nearZeroVar(un.jour.factor,saveMetrics = TRUE)
+print(nzv[nzv$nzv,][1:10,])
+
+nzv <- nearZeroVar(un.jour.factor)
+un.jour.factor <- un.jour.factor[, -nzv]
+str(un.jour.factor)
+
+##correlation
+descrCor <-  cor(un.jour.factor[,-9])
+corrplot(descrCor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+
+train_data = un.jour.factor[1:(set_size - test_size),]
+test_data = un.jour.factor[(set_size - test_size):set_size,]
+
+set.seed(12345)
+rf.num.fil <- randomForest( output ~. , data = train_data, ntree = 100)
+print(rf.num.fil)
+varImpPlot(rf.num.fil)
+```
+# Test taking values as factor
+```{r}
+load("dataset_model.Rdata")
+load("dataset.Rdata")
+data.full <- data.model
+data.full$fmv <- data$fmv
+data.full$psu <- as.factor(data$psu)
+summary(data.full)
+##### save
+save(data.full,file="dataset_model_full.Rdata")
+
+```
+## correlation categorical
+
+**Pearson's chi-squared test (χ2)**  is a statistical test applied to sets of categorical data to evaluate how likely it is that any observed difference between the sets arose by chance. It is the most widely used of many chi-squared tests (e.g., Yates, likelihood ratio, portmanteau test in time series, etc.)
+
+ > The measure of association does not indicate causality, but association–that is, whether a variable is associated with another variable. This measure of association also indicates the strength of the relationship, whether, weak or strong.
+ Since,nominal categorical predictor’s, the Goodman and Kruskal’s tau measure is appropriate. Interested readers are invited to see pages 68 and 69 of the Agresti book. More information on this test can be seen here
+ 
+[link](https://www.r-bloggers.com/to-eat-or-not-to-eat-thats-the-question-measuring-the-association-between-categorical-variables/)
+```{r}
+load("dataset_model_full.Rdata")
+library(GoodmanKruskal)
+#categorical data 
+
+varset1 <- names(Filter(is.factor,data.full))
+varset1
+
+dataFrame1<- subset(data.full, select = varset1)
+#make matrix
+GKmatrix1<- GKtauDataframe(dataFrame1)
+plot(GKmatrix1, corrColors = "blue")
+```
+> The off-diagonal elements contain the forward and backward tau measures for each variable pair. Specifically, the numerical values appearing in each row represent the association measure τ(x,y)τ(x,y) from the variable xx indicated in the row name to the variable yy indicated in the column name.
+
+> The most obvious feature from this plot is the fact that the variable odor is almost perfectly predictable (i.e. τ(x,y)=0.94) from class and this forward association is quite strong. The forward association suggest that x=odor (which has levels “almond”, “creosote”, “foul”, “anise”, “musty”, “nosmell”, “pungent”, “spicy”, “fishy”) is highly predictive of y=class (which has levels “edible”, “poisonous”). 
+
+> x=cap shape is weakly associated to y=cap surface (i.e.τ(x,y)=0.03) and (i.e.τ(y,x)=0.01). Thus, we can safely say that although these two variables are significant but they are association is weak; i.e. it will be difficult to predict one from another.
+
+### diag et prod1
+```{r}
+index <- sample(1:nrow(data.full), 200000)
+data <- data.full[index,c("diag","prod1","output")]
+
+#change produit
+prod.plus <- as.data.frame(sort(table(data$prod1),decreasing = TRUE))[1:52,1]
+levels(data$prod1)[!levels(data$prod1) %in% prod.plus] <- "XX"
+str(data)
+
+#split
+set_size <- dim(data)[1]
+test_size <- round(0.2 * set_size)
+train_data = data[1:(set_size - test_size),]
+test_data = data[(set_size - test_size):set_size,]
+
+#model
+set.seed(12345)
+model.rf <- randomForest( diag ~. , data = train_data, ntree = 100)
+print(model.rf)
+
+
+```
+
+```{r}
+data.num <- data
+
+prod.plus <- as.data.frame(sort(table(data.num$prod1),decreasing = TRUE))[1:52,1]
+levels(data.num$prod1)[!levels(data.num$prod1) %in% prod.plus] <- "XX"
+str(data)
+
+
+
+#split
+set_size <- dim(data.num)[1]
+test_size <- round(0.2 * set_size)
+train_data = data.num[1:(set_size - test_size),]
+test_data = data.num[(set_size - test_size):set_size,]
+
+#model
+set.seed(12345)
+model.rf.num <- randomForest( output ~. , data = train_data, ntree = 100)
+print(model.rf.num)
+varImpPlot(model.rf.num)
+
+```
+```{r}
+data.num <- data
+
+out.plus <- as.data.frame(sort(table(data.num$output),decreasing = TRUE))[1:15,1]
+indx <- data.num$output %in% out.plus
+levels(data.num$output)[!levels(data.num$output) %in% out.plus] <- "Other"
+str(data.num)
+data.x <- data.num
+
+  set_size <- dim(data.x)[1]
+  test_size <- round(0.2 * set_size)
+  train_data = data.x[1:(set_size - test_size),]
+  test_data = data.x[(set_size - test_size):set_size,]
+  #model
+  set.seed(12345)
+  model.rf.ot <- randomForest( output ~. , data = train_data, ntree = 100)
+  print(model.rf.ot)
+
+```
+
