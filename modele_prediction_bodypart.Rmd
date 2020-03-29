@@ -15,7 +15,6 @@ library(tidyr)
 library(ggplot2)
 library(doParallel)
 library(randomForest)
-library(caret)
 
 ```
 
@@ -79,16 +78,6 @@ expand_limits(y = 0)+
   ggtitle("Nombre d'observations")
 
 ```
-        
-# count by factor  
-```{r}
-gather(df, key, value, -owner) %>% 
-    count(owner, key, value) %>% 
-    spread(value, n, fill = 0)
-```
-     
-
-
 
 # ------ modele un jour
 
@@ -139,17 +128,11 @@ perf_test_rf <- predict(rf, test_data)
 perf_test_rf
 ```
 
-```{r}
-rf.mil <- randomForest( output ~. , data = train_data, ntree = 1000)
-print(rf.mil)
-```
-
- ##
 
 # NEW DATASET
 ## get data and cleaning
 ```{r}
-index <- sample(1:nrow(data.model), 50000)
+index <- sample(1:nrow(data.model), 25000)
 #un.jour <- data.model[data.model$date >= "2017-12-24",]
 un.jour <- data.model[index,]
 un.jour.enc <- model.matrix(output ~ ., data = un.jour)
@@ -221,44 +204,6 @@ plot(rf, main = "Error rate of random forest")
 ---------------
 other approach
 
-```{r}
-index <- sample(1:nrow(data.model), 100000)
-un.jour.factor <- data.model[index,]
-set_size <- dim(un.jour.factor)[1]
-test_size <- round(0.2 * set_size)
-
-# to numeric
-factor.jour <- Filter(is.factor,un.jour.factor)
-for(col in names(factor.jour)){
-  un.jour.factor[,col] <- as.numeric(un.jour.factor[,col])
-}
-un.jour.factor$output <- as.factor(data.model[index,"output"])
-
-print(str(un.jour.factor))
-
-##rpart
-# Training with classification tree
-# Training with Random forest model
-#registerDoParallel(cl)
-nzv <- nearZeroVar(un.jour.factor,saveMetrics = TRUE)
-print(nzv[nzv$nzv,][1:10,])
-
-nzv <- nearZeroVar(un.jour.factor)
-un.jour.factor <- un.jour.factor[, -nzv]
-str(un.jour.factor)
-
-##correlation
-descrCor <-  cor(un.jour.factor[,-9])
-corrplot(descrCor, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
-
-train_data = un.jour.factor[1:(set_size - test_size),]
-test_data = un.jour.factor[(set_size - test_size):set_size,]
-
-set.seed(12345)
-rf.num.fil <- randomForest( output ~. , data = train_data, ntree = 100)
-print(rf.num.fil)
-varImpPlot(rf.num.fil)
-```
 # Test taking values as factor
 ```{r}
 load("dataset_model.Rdata")
@@ -298,69 +243,240 @@ plot(GKmatrix1, corrColors = "blue")
 
 > x=cap shape is weakly associated to y=cap surface (i.e.τ(x,y)=0.03) and (i.e.τ(y,x)=0.01). Thus, we can safely say that although these two variables are significant but they are association is weak; i.e. it will be difficult to predict one from another.
 
-### diag et prod1
+
 ```{r}
-index <- sample(1:nrow(data.full), 200000)
-data <- data.full[index,c("diag","prod1","output")]
-
-#change produit
-prod.plus <- as.data.frame(sort(table(data$prod1),decreasing = TRUE))[1:52,1]
-levels(data$prod1)[!levels(data$prod1) %in% prod.plus] <- "XX"
-str(data)
-
-#split
-set_size <- dim(data)[1]
-test_size <- round(0.2 * set_size)
-train_data = data[1:(set_size - test_size),]
-test_data = data[(set_size - test_size):set_size,]
 
 #model
-set.seed(12345)
-model.rf <- randomForest( diag ~. , data = train_data, ntree = 100)
-print(model.rf)
+table(data.model$output)
+```
+1. tomar la misma cantidad por cada clase
+2. nnet
+
+
+```{r}
+library(nnet)
+## net data
+levels(data.model$output)[1] <- levels(data.model$output)[2]  # remove "25% body" factor, it becomes all body
+table(data.model$output)
+
+#create a dataset with 5000 samples by factor
+sel <- subset(data.model, data.model$output == levels(data.model$output)[1]) #get obs from all body
+data.good <- sel[sample(1:nrow(sel),5000),]
+
+#get from the others
+for(l in levels(data.model$output)[-1]){
+  sel <- subset(data.model, data.model$output == l)
+  data.good <- rbind(data.good, sel[sample(1:nrow(sel),5000),])
+}
+### new dataset
+str(data.good)
+head(data.good)
+save(data.good,file ="dataset_balanced.Rdata")
+
 
 
 ```
 
+### function to plot the confusion matrix
+
 ```{r}
-data.num <- data
+plot_confusion_matrix <- function(out.pred,true.label,title){
+                        mat <- as.data.frame(prop.table(table(out.pred,true.label),1)) #normalize by class
+                        plot <- ggplot(mat,aes(x = out.pred,y=true.label,fill=Freq))+
+                                geom_tile()+
+                                ggtitle(title)+
+                                theme(axis.text.x = element_text(angle=45, hjust = 1))+ #incline text
+                                xlab("true.label")+
+                                xlab("predicted")
+                        return(plot)
+}
+```
 
-prod.plus <- as.data.frame(sort(table(data.num$prod1),decreasing = TRUE))[1:52,1]
-levels(data.num$prod1)[!levels(data.num$prod1) %in% prod.plus] <- "XX"
-str(data)
+### new dataset diag equilibre
+```{r}
+levels(data.model$diag)
+data.diag <- data.model[,c("date","age","diag","prod1","output")]
+data.diag <- data.diag[sample(1:nrow(data.diag),nrow(data.diag)),] #permute dataset
+#change all burns
+lev <- gsub(" |,","",levels(data.diag$diag)) #remove spaces and ,
+levels(data.diag$diag) <- gsub("^(Burns)(.+)","Burns",(lev))  #change to Burn
+str(data.diag)
+table(data.diag$diag)
 
+
+
+#only the diag populares
+diag.plus <- as.data.frame(sort(table(data.diag$diag),decreasing = TRUE))[1:16,1]
+levels(data.diag$diag)[!levels(data.diag$diag) %in% diag.plus] <- "OtherDiag"
+levels(data.diag$diag)
+
+#only the prod populares
+prod.plus <- as.data.frame(sort(table(data.diag$prod1),decreasing = TRUE))[1:50,1]
+levels(data.diag$prod1)[!levels(data.diag$prod1) %in% prod.plus] <- "OtherProd"
+levels(data.diag$prod1)
+
+#create a dataset with 5000 samples by diag
+sel <- subset(data.diag, data.diag$diag == levels(data.diag$diag)[1]) #get obs from diag1
+data.good.diag <- sel[sample(1:nrow(sel),5000),]
+
+#get from the others
+for(l in levels(data.diag$diag)[-1]){
+  sel <- subset(data.diag, data.diag$diag == l)
+  data.good.diag <- rbind(data.good.diag, sel[sample(1:nrow(sel),5000),])
+}
+### new dataset
+str(data.good.diag)
+head(data.good.diag)
+data.good.diag <- data.good.diag[sample(1:nrow(data.good.diag),nrow(data.good.diag)),] #permute dataset
+head(data.good.diag)
+save(data.good.diag, file= "dataseteq_diag.Rdata")
+```
+
+## model output
+
+```{r}
+load("dataset_balanced.Rdata")
 
 
 #split
-set_size <- dim(data.num)[1]
-test_size <- round(0.2 * set_size)
-train_data = data.num[1:(set_size - test_size),]
-test_data = data.num[(set_size - test_size):set_size,]
+dataset <- data.good[,c("date","age","diag","prod1","output")]
+dataset <- dataset[sample(1:nrow(dataset),nrow(dataset)),] #permute dataset
 
+#only the 52 products most populars
+prod.plus <- as.data.frame(sort(table(dataset$prod1),decreasing = TRUE))[1:52,1]
+levels(dataset$prod1)[!levels(dataset$prod1) %in% prod.plus] <- "XX"
+print(str(dataset))
 #model
+plot(table(dataset$output))
+
+test_size <- round(0.7 * nrow(dataset))
+train_data = dataset[1:test_size,]
+test_data = dataset[-(1:test_size),]
+
 set.seed(12345)
-model.rf.num <- randomForest( output ~. , data = train_data, ntree = 100)
-print(model.rf.num)
-varImpPlot(model.rf.num)
+model.grf <- randomForest( output ~. , data = train_data, ntree = 100)
+print(model.grf)
+varImpPlot(model.grf)
+
 
 ```
+
+### autotune?
 ```{r}
-data.num <- data
+set.seed(12345)
+bestmtry <- tuneRF(train_data[,-5],train_data$output, stepFactor=1.5, improve=1e-5, ntree=100)
+print(bestmtry)
 
-out.plus <- as.data.frame(sort(table(data.num$output),decreasing = TRUE))[1:15,1]
-indx <- data.num$output %in% out.plus
-levels(data.num$output)[!levels(data.num$output) %in% out.plus] <- "Other"
-str(data.num)
-data.x <- data.num
+#model 50 trees mtry2
+set.seed(12345)
+model.grf.2 <- randomForest( output ~. , data = train_data, ntree = 50, mtry =2)
+print(model.grf.2)
+varImpPlot(model.grf.2)
 
-  set_size <- dim(data.x)[1]
-  test_size <- round(0.2 * set_size)
-  train_data = data.x[1:(set_size - test_size),]
-  test_data = data.x[(set_size - test_size):set_size,]
-  #model
-  set.seed(12345)
-  model.rf.ot <- randomForest( output ~. , data = train_data, ntree = 100)
-  print(model.rf.ot)
+#model 50 trees mtry2 without date
+set.seed(12345)
+model.grf.nd <- randomForest( output ~ diag +age+prod1 , data = train_data, ntree = 50,mtry =2)
+print(model.grf.nd)
+varImpPlot(model.grf.nd)
 
 ```
+
+
+```{r}
+set.seed(12345)
+model.grf4 <- randomForest( output ~. , data = train_data, ntree = 500)
+print(model.grf4)
+```
+
+##results
+
+```{r}
+out.pred2 <- predict(model.grf.2, train_data[,-5]) #all data, mtry 2, 50nt
+out.pred3 <- predict(model.grf.nd, train_data[,-5]) #without data, mtry2, 50nt
+out.pred1 <- predict(model.grf, train_data[,-5]) #all data, mtry auto, 100nt
+out.pred4 <- predict(model.grf4, train_data[,-5]) #all data, mtry auto, 100nt
+
+p1 <- plot_confusion_matrix(out.pred1,train_data$output,"CM of output (training_data) m1")
+p2 <- plot_confusion_matrix(out.pred2,train_data$output,"CM of output (training_data) m2")
+p3 <- plot_confusion_matrix(out.pred3,train_data$output,"CM of output (training_data) m3")
+p4 <- plot_confusion_matrix(out.pred4,train_data$output,"CM of output (training_data) m4")
+
+##test
+out.pred2 <- predict(model.grf.2, test_data[,-5]) #test data without output
+out.pred3 <- predict(model.grf.nd, test_data[,-5]) #test data without output
+out.pred1 <- predict(model.grf, test_data[,-5]) #test data without output
+out.pred4 <- predict(model.grf4, test_data[,-5]) #test data without output
+
+p5 <- plot_confusion_matrix(out.pred1,test_data$output,"CM of output (test_data) m1")
+p6 <- plot_confusion_matrix(out.pred2,test_data$output,"CM of output (test_data) m2")
+p7 <- plot_confusion_matrix(out.pred3,test_data$output,"CM of output (test_data) m3")
+p8 <- plot_confusion_matrix(out.pred4,test_data$output,"CM of output (test_data) m4")
+
+library(cowplot)
+figure1 <- plot_grid(p1,p5,p2,p6,p3,p7,p4,p8,
+                    ncol = 2, nrow = 4,
+                    align = "hv")
+figure1
+
+save_plot("cm_rf_output.png", figure1, ncol = 2, nrow = 4)
+```
+
+### model diagnostic
+
+```{r}
+####
+load("dataseteq_diag.Rdata")
+test_size <- round(0.7 * nrow(data.good.diag))
+train_data = data.good.diag[1:test_size,]
+test_data = data.good.diag[-(1:test_size),]
+
+set.seed(12345)
+model.diag.rf <- randomForest( diag ~. , data = train_data, ntree = 100)
+print(model.diag.rf)
+set.seed(12345)
+model.diag.rf2 <- randomForest( diag ~ output + prod1 , data = train_data, ntree = 100)
+print(model.diag.rf2)
+
+set.seed(12345)
+model.diag.rf3 <- randomForest( diag ~. , data = train_data, ntree = 50, mtry =2)
+print(model.diag.rf3)
+
+varImpPlot(model.diag.rf)
+varImpPlot(model.diag.rf2)
+varImpPlot(model.diag.rf3)
+
+
+```
+### confusion matrix
+
+```{r}
+str(train_data)
+out.pred1 <- predict(model.diag.rf, train_data[,-3]) #all data, 100nt
+out.pred2 <- predict(model.diag.rf2, train_data[,-3]) #only prod1 et output 100nt
+out.pred3 <- predict(model.diag.rf3, train_data[,-3]) #all data, mtry 2, 50nt
+
+p1 <- plot_confusion_matrix(out.pred1,train_data$diag,"CM of diagnostic (training_data) m1")
+p2 <- plot_confusion_matrix(out.pred2,train_data$diag,"CM of diagnostic (training_data) m2")
+p3 <- plot_confusion_matrix(out.pred3,train_data$diag,"CM of diagnostic (training_data) m3")
+
+
+##test
+out.pred1 <- predict(model.diag.rf, test_data[,-3]) #test data without diag
+out.pred2 <- predict(model.diag.rf2, test_data[,-3]) #test data without diag
+out.pred3 <- predict(model.diag.rf3, test_data[,-3]) #test data without diag
+
+p4 <- plot_confusion_matrix(out.pred1,test_data$diag,"CM of diagnostic (test_data) m1")
+p5 <- plot_confusion_matrix(out.pred2,test_data$diag,"CM of diagnostic (test_data) m2")
+p6 <- plot_confusion_matrix(out.pred3,test_data$diag,"CM of diagnosticut (test_data) m3")
+
+library(cowplot)
+figure1 <- plot_grid(p1,p4,p2,p5,p3,p6,
+                    ncol = 2, nrow = 3,
+                    align = "hv")
+figure1
+
+save_plot("cm_rf_diag.png", figure1, ncol = 2, nrow = 3)
+```
+
+
 
