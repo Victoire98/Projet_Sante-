@@ -1,0 +1,100 @@
+---
+title: "mars_27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+
+library(ggplot2)
+# Step 1
+data % > % 
+#Step 2
+group_by(lgID) % > % 
+#Step 3
+summarise(mean_home_run = mean(HR)) % > % 
+#Step 4
+ggplot(aes(x = lgID, y = mean_home_run, fill = lgID)) +
+    geom_bar(stat = "identity") +
+    theme_classic() +
+    labs(
+        x = "baseball league",
+        y = "Average home run",
+        title = paste(
+            "Example group_by() with summarise()"
+        )
+    )
+
+# to avoid illegal names
+load("../data_set_cor.Rdata")
+data_set_cor <- data
+View(data_set_cor)
+names(data_set_cor) <- make.names(names(data_set_cor))
+
+library("neiss")
+data <- as.data.frame(injuries)
+summary(data)
+data
+data_set_cor['diag_1'] = data['diag']
+library(tidyr)
+library(dplyr)
+
+
+#library("randomForest")
+#hello <- data_set_cor %>% gather(data, key = 'diag')
+#length(unique(train_data$diag))
+
+# diag counter : column to predict 
+try <- data_set_cor %>% group_by(trmt_date, diag_1, location) %>% summarise(number_diag = n()) %>% arrange(trmt_date,number_diag)
+try
+
+# location counter 
+location_set <- data_set_cor %>% group_by(trmt_date, location) %>% summarise(number_location = n()) %>% arrange(trmt_date,number_location)
+
+location_set
+#
+try <- data_set_cor %>% group_by(trmt_date, diag) %>% summarise(number_diag = n()) %>% arrange(trmt_date,number_diag)
+try
+
+try_2 <- data_set_cor %>% group_by(trmt_date, diag, location) %>% summarise(number_diag = n()) %>% arrange(trmt_date,number_diag)
+try
+
+data_set_cor$count_diag <- 0
+for (column in unique(data_set_cor$diag)){
+  ind <- (data_set_cor$diag == column)
+  data_set_cor$count_diag[ind] <- length(data_set_cor$diag[ind])
+}
+
+#ind_cons <- ((data_set_cor$count_diag >= 15))
+#length(unique(data_set_cor$diag[ind_cons]))
+data_set_tree <- subset(data_set_cor, count_diag >= 1000)[2:39]
+set_size <- dim(data_set_tree)[1]
+test_size <- round(0.2 * set_size)
+
+train_data = data_set_tree[1:(set_size - test_size),]
+test_data = data_set_tree[(set_size - test_size):set_size,]
+
+unique(train_data$diag)
+fit2 <- randomForest(diag~., data = train_data,ntree = 50)
+yperf_forest = predict(fit2,test_data)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

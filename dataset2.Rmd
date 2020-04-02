@@ -108,7 +108,7 @@ Conversion en tant que facteurs, suppression des NA et onehotEnconding pour la v
 
     - `sex`, `race`, `diag`, `disposition`, `fmv`, `prod1`,`prod2`, and `stratum`
     
-    
+
 ```{r}
 str(data)
 ```
