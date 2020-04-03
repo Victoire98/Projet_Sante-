@@ -17,6 +17,8 @@ When you click the **Knit** button a document will be generated that includes bo
 
 library(ggplot2)
 library(lubridate)
+library(magrittr)
+library(ggpubr)
 
 m3 <-glm(formula = Y~.,family = binomial, data = try)
 summary(m3)
@@ -79,7 +81,7 @@ diag_counter <- data_set_cor %>% group_by(year,month,day,diag_1) %>% summarise(n
 m3 <-glm(formula = Y~.,family = binomial, data = diag_counter)
 summary(m3)
 
-diag_counter$diag_1 <- as.numeric(factor(diag_counter$diag_1))
+diag_counter$diag_2 <- as.numeric(factor(diag_counter$diag_1))
 
 source("mosthighlycorrelated.r")
 mosthighlycorrelated(diag_counter, 10)
@@ -117,7 +119,130 @@ expand_limits(y = 0)+
   ggtitle("Nombre d'observations")
 ```
 ```{r}
-plot(diag_counter[diag_counter$diag_1 == "Fracture",'number_diag'])
+diag_counter.c <- data_set_cor %>%
+  group_by(year) %>% summarise(number_cases = n()) %>% arrange(year,number_cases)
+mean(diag_counter.c$number_cases)
+
+  ggplot(diag_counter.c,aes(x=year, y=number_cases))  +
+geom_line(aes())+
+expand_limits(y = 0)+
+  ggtitle("Nombre de cas par an")
+
+data.plot = subset(diag_counter, year == "2013")
+ ggplot(data.plot,aes(x=day, y=number_diag))+
+geom_point(aes(color = diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations")
+```
+```{r}
+
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1211,] %>%
+  group_by(year,month) %>% summarise(number_cases = n()) %>% arrange(year, month)
+
+mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
+
+ ggplot(diag_counter.c,aes(x=month, y=number_cases)) +
+facet_wrap(~year, scales = "free_x", ncol =5) +
+geom_line(aes()) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'accidents en Football Américain chaque année")
+
+data.plot = subset(diag_counter, year == "2013")
+ ggplot(data.plot,aes(x=day, y=number_diag))+
+geom_point(aes(color = diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations")
+```
+
+
+```{r}
+
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1267,] %>%
+  group_by(year,month) %>% summarise(number_cases = n()) %>% arrange(year, month)
+
+mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
+
+ ggplot(diag_counter.c,aes(x=month, y=number_cases)) +
+facet_wrap(~year, scales = "free_x", ncol =5) +
+geom_line(aes()) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'accidents en Football (Soccer) chaque année")
+
+data.plot = subset(diag_counter, year == "2013")
+ ggplot(data.plot,aes(x=day, y=number_diag))+
+geom_point(aes(color = diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations")
+```
+
+
+```{r}
+# tennnis : 3284
+plot_proportion<- function(data,name,title, x, y){
+                plot <- ggplot(data = data%>% arrange(y), aes(x =x, y =y, fill = y))+
+                geom_bar(stat="identity", position="dodge")+
+                geom_text(aes(label =sprintf("%.3f %%",y*100), color = y),
+                          hjust = -0.3, size = 2.5) + 
+                expand_limits(y = c(0, data[1,2]*1.5))+
+                coord_flip()+
+                theme_bw()+
+                xlab(name)+
+                ggtitle(title)+
+                theme(legend.position = "none")
+                return(plot)
+}
+
+
+# Soccer 
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1267,] %>%
+  group_by(year, diag_1) %>% summarise(number_cases = n()) %>% arrange(year, diag_1)
+diag_counter.c
+#mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
+
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1267,] %>%
+  group_by(diag_1) %>% summarise(number_cases = n()) %>% arrange(number_cases)
+diag_counter.c
+
+diag_counter.c<- diag_counter.c[diag_counter.c$number_cases>161,]
+
+plot_proportion(diag_counter.c,"Diagnostic", "Les diagnostics les plus fréquents chez les footballeurs",diag_counter.c$diag_1, diag_counter.c$number_cases)
+
+```
+
+
+```{r}
+
+hello <- merge(data_set_cor[data_set_cor$prod1 ==3283,], data_set_cor[data_set_cor$prod1 ==5031,], all =TRUE)
+
+hello
+diag_counter.c <- hello %>%
+  group_by(year,month) %>% summarise(number_cases = n()) %>% arrange(year, month)
+
+mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
+
+ ggplot(diag_counter.c,aes(x=month, y=number_cases)) +
+facet_wrap(~year, scales = "free_x", ncol =5) +
+geom_line(aes()) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'accidents en Ski et Snowboard chaque année")
+
+data.plot = subset(diag_counter, year == "2013")
+ ggplot(data.plot,aes(x=day, y=number_diag))+
+geom_point(aes(color = diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations")
+```
+
+
+
+
+```{r}
+
+
+diag_counter
+hello <- diag_counter[diag_counter$diag_1 == "Fracture",]
+View(hello)
+#plot(hello$month, hello$number_diag)
 ```
 
 
@@ -151,7 +276,7 @@ unique(data_set_cor$diag_1)
 # on ne considere que les concussions
 conc <- diag_counter[diag_counter$diag_1==12,]
 conc['diag_1']<- NULL
-conc.groupby('year')
+#conc.groupby('year')
 
 conc_yearly <- conc %>% group_by( month, year) %>% summarise(sum_diag = n()) %>% arrange(year, month)
 qplot(conc_yearly$year, conc_yearly$sum_diag)
