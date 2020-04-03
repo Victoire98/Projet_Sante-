@@ -48,7 +48,7 @@ print(dim(data))
 ```{r}
 
 #--> pour tous les other or not stated et seulement pour eux le diag est dans diag_2
-data[data$diag == 'Other Or Not Stated',]$diag<- paste("Other-",data[data$diag == 'Other Or Not Stated',]$diag_other)
+#data[data$diag == 'Other Or Not Stated',]$diag<- paste("Other-",data[data$diag == 'Other Or Not Stated',]$diag_other)
 data$diag_other <- NULL
 #----race  other
 data$race_other <- NULL # on suprrime other eace, bruit
@@ -73,6 +73,7 @@ data$fmv <-(as.factor(data$fmv))
 data$stratum <-(as.factor(data$stratum))
 data$prod1 <-(as.factor(data$prod1))
 data$prod2 <-(as.factor(data$prod2))
+data$psu <-(as.factor(data$psu))
 #on suprimme case_num
 data$case_num <- NULL
 print("La nouvelle structure")
@@ -102,7 +103,7 @@ Conversion en tant que facteurs, suppression des NA et onehotEnconding pour la v
 
 **Numeric**: 
 
-    - `age`, `psu`, `weight`, and `bodypart onehot vectors`
+    - `age`, `weight`, and `bodypart onehot vectors`
     
 **Factor** :
 

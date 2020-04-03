@@ -40,11 +40,13 @@ data.stats$output <- as.factor(data.stats$output)
 # 3. Numerical 
 
 ```{r}
+
 num <- Filter(is.numeric, data.stats)
 print(names(num))
 boxplot(num)
 ```
-### C'est quoi `psu` et `weight` ?
+### C'est quoi `psu` et `weight` ? 
+Des variables statistiques
 ```{r}
 summary(num)
 
@@ -53,28 +55,24 @@ summary(num)
 p<- ggplot(data =  data.stats,aes(x=age))+
   geom_histogram()+
   xlab("Age")
-
-q<-ggplot(data =  data.stats,aes(x=psu))+
-  geom_histogram()+
-  xlab("Psu")
 r<-ggplot(data =  data.stats,aes(x=weight))+
   geom_histogram()+
   xlab("Weight")
 
-figure <- ggarrange(p, q, r,
-                    labels = c("(a)", "(b)", "(c)"),
-                    ncol = 1, nrow = 3,
+figure <- ggarrange(p, r,
+                    ncol = 1, nrow = 2,
                     align = "hv")
 
 figure
-
+##report
 ```
 
 # Données catégorielles
 
 ```{r}
 summary( Filter(is.factor, data.stats))
-print(str(Filter(is.factor, data.stats)))
+print(str(data.stats))
+
 ```
 
 ```{r}
@@ -89,6 +87,9 @@ get_proportion <- function(x) {
 plot_proportion<- function(data,name,title){
                 plot <- ggplot(data = data, aes(x =x, y =Freq, fill = Freq))+
                 geom_bar(stat="identity",position="dodge")+
+                geom_text(aes(label = sprintf("%.3f %%",Freq*100)),
+                          hjust = -0.3, size = 2.5) + 
+                expand_limits(y = c(0, data[1,2]*1.5))+
                 coord_flip()+
                 theme_bw()+
                 xlab(name)+
@@ -220,34 +221,16 @@ res.ca <- CA(cont.table.str, graph = FALSE)
 fviz_ca_biplot(res.ca, repel = TRUE, title = "CA stratum and output")
 
 #-------analyse where diag is popular
-diag <- get_proportion(data.stats$diag)[1:15,]
+diag <- get_proportion(data.stats$diag)[1:10,]
 ind <- data.stats$diag %in% diag[,1] #get index where diag is popular
 cont.table.loc <- ((table(data.stats$diag[ind, drop=TRUE],data.stats$location[ind, drop=TRUE])))
 res.ca <- CA(cont.table.loc, graph = FALSE)
 fviz_ca_biplot(res.ca, repel = TRUE, title = "CA most popular diag and location")
 
-cont.table.loc <- ((table(data.stats$diag[ind, drop=TRUE],data.stats$race[ind, drop=TRUE])))
-res.ca <- CA(cont.table.loc, graph = FALSE)
-fviz_ca_biplot(res.ca, repel = TRUE, title = "CA most popular diag and race")
 
 
 
 ```
 
 
-
-```{r}
-#cross the time
-
-ind <- data.stats["output"]=="Knee"
-head.sum <- aggregate(data.stats[ind,"output"],by=list(data.stats$trmt_date[ind]), summary)
-names(head.sum) <- c('date','freq')
-ggplot(data = head.sum, aes(x=date, y=freq)) +
-  geom_line()
-  #scale_x_date(limit=c(as.Date("2013-01-01"),as.Date("2014-01-01"))) 
-plot(age.mean[,2],type="l", ylim = c(0,150),xlab = "")
-lines(age.max[,2],col = "dark red")
-lines(age.min[,2],col = "dark blue")
-axis(3, at= seq(1,60,10),labels= age.mean[seq(1,60,10),1])
-```
 

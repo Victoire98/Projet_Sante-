@@ -72,7 +72,7 @@ head(le_month)
 
 
 ggplot(le_month,aes(x=YearMonth, y=n)) +
-facet_wrap(~Year, scales = "free_x", ncol = 4) +
+facet_wrap(~Year, scales = "free_x", ncol = 5) +
 geom_line() +
 expand_limits(y = 0)+
   ggtitle("Nombre d'observations")

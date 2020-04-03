@@ -24,7 +24,9 @@ summary(m3)
 model <-glm(formula = y~t, family = poisson)
 
 # to avoid illegal names
-load("../data_set_cor.Rdata")
+path = "~/Documents/3eme-annee/Data R/Projet_Sante-/"
+setwd(path)
+load("dataset.Rdata")
 
 # data 
 data_set_cor <- data
@@ -32,10 +34,10 @@ View(data_set_cor)
 names(data_set_cor) <- make.names(names(data_set_cor))
 
 library("neiss")
-data <- as.data.frame(injuries)
+data1 <- as.data.frame(injuries)
 data
-data_set_cor['diag_1'] = data['diag']
-data_set_cor['body_part'] = data['body_part']
+data_set_cor['diag_1'] = data1['diag']
+data_set_cor['body_part'] = data1['body_part']
 
 data_set_cor$month = month(as.POSIXlt(data_set_cor$trmt_date, format="%d-%m-%Y"))
 data_set_cor$day = day(as.POSIXlt(data_set_cor$trmt_date, format="%d-%m-%Y"))
@@ -54,7 +56,7 @@ library(ggplot2)
 
 # diag counter : column to predict 
 
-diag_counter <- data_set_cor %>% group_by( day, month, year, diag_1) %>% summarise(number_diag = n()) %>% arrange(day, month, year,number_diag)
+diag_counter <- data_set_cor %>% group_by(year,month,day,diag_1) %>% summarise(number_diag = n()) %>% arrange(month, year,number_diag)
 
 # location counter 
 #location_set <- data_set_cor %>% group_by(trmt_date, location) %>% summarise(number_location = n()) %>% #arrange(trmt_date,number_location)
@@ -95,6 +97,29 @@ rfnum <- randomForest( number_diag ~. , data = train, ntree = 200)
 print(rfnum)
 
 ```
+
+
+```{r}
+diag_counter.c <- data_set_cor %>% 
+  mutate(Monthday = ymd(paste0(month, "-", day))) %>%
+  group_by(year,Monthday,diag_1) %>% summarise(number_diag = n()) %>% arrange(year, Monthday,number_diag)
+diag_counter.c
+  ggplot(diag_counter,aes(x=month, y=number_diag)) +
+facet_wrap(~year, scales = "free_x", ncol =5) +
+geom_line(aes(color = diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations")
+
+data.plot = subset(diag_counter, year == "2013")
+ ggplot(data.plot,aes(x=day, y=number_diag))+
+geom_point(aes(color = diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations")
+```
+```{r}
+plot(diag_counter[diag_counter$diag_1 == "Fracture",'number_diag'])
+```
+
 
 ```{r}
 varImpPlot(rfnum)
