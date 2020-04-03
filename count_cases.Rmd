@@ -128,11 +128,7 @@ geom_line(aes())+
 expand_limits(y = 0)+
   ggtitle("Nombre de cas par an")
 
-data.plot = subset(diag_counter, year == "2013")
- ggplot(data.plot,aes(x=day, y=number_diag))+
-geom_point(aes(color = diag_1)) +
-expand_limits(y = 0)+
-  ggtitle("Nombre d'observations")
+
 ```
 ```{r}
 
@@ -147,11 +143,6 @@ geom_line(aes()) +
 expand_limits(y = 0)+
   ggtitle("Nombre d'accidents en Football Américain chaque année")
 
-data.plot = subset(diag_counter, year == "2013")
- ggplot(data.plot,aes(x=day, y=number_diag))+
-geom_point(aes(color = diag_1)) +
-expand_limits(y = 0)+
-  ggtitle("Nombre d'observations")
 ```
 
 
@@ -168,12 +159,40 @@ geom_line(aes()) +
 expand_limits(y = 0)+
   ggtitle("Nombre d'accidents en Football (Soccer) chaque année")
 
-data.plot = subset(diag_counter, year == "2013")
- ggplot(data.plot,aes(x=day, y=number_diag))+
-geom_point(aes(color = diag_1)) +
-expand_limits(y = 0)+
-  ggtitle("Nombre d'observations")
 ```
+```{r}
+# Fracture
+diag_counter.c <- data_set_cor[data_set_cor$diag_1 =='Fracture',] %>%
+  group_by(year,month) %>% summarise(number_cases = n()) %>% arrange(year, month)
+
+mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
+
+ ggplot(diag_counter.c,aes(x=month, y=number_cases)) +
+facet_wrap(~year, scales = "free_x", ncol =5) +
+geom_line(aes()) +
+expand_limits(y = 0)+
+  ggtitle("Nombre de Fractures chaque année")
+
+```
+
+
+```{r}
+# Entorses
+
+diag_counter.c <- data_set_cor[data_set_cor$diag_1 =='Strain, Sprain',] %>%
+  group_by(year,month) %>% summarise(number_cases = n()) %>% arrange(year, month)
+
+mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
+
+ ggplot(diag_counter.c,aes(x=month, y=number_cases)) +
+facet_wrap(~year, scales = "free_x", ncol =5) +
+geom_line(aes()) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'Entorses chaque année")
+
+```
+
+
 
 
 ```{r}
@@ -181,37 +200,61 @@ expand_limits(y = 0)+
 plot_proportion<- function(data,name,title, x, y){
                 plot <- ggplot(data = data%>% arrange(y), aes(x =x, y =y, fill = y))+
                 geom_bar(stat="identity", position="dodge")+
-                geom_text(aes(label =sprintf("%.3f %%",y*100), color = y),
+                geom_text(aes(label ='', color = y),
                           hjust = -0.3, size = 2.5) + 
                 expand_limits(y = c(0, data[1,2]*1.5))+
                 coord_flip()+
                 theme_bw()+
                 xlab(name)+
+                ylab('Nombre de cas sur les 5 ans')+
                 ggtitle(title)+
                 theme(legend.position = "none")
                 return(plot)
 }
 
 
-# Soccer 
-diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1267,] %>%
+ 
+
+```
+
+```{r}
+# tennnis : 3284
+
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==3284,] %>%
   group_by(year, diag_1) %>% summarise(number_cases = n()) %>% arrange(year, diag_1)
 diag_counter.c
 #mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
 
-diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1267,] %>%
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==3284,] %>%
   group_by(diag_1) %>% summarise(number_cases = n()) %>% arrange(number_cases)
 diag_counter.c
 
-diag_counter.c<- diag_counter.c[diag_counter.c$number_cases>161,]
+diag_counter.c<- diag_counter.c[diag_counter.c$number_cases>15,]
 
-plot_proportion(diag_counter.c,"Diagnostic", "Les diagnostics les plus fréquents chez les footballeurs",diag_counter.c$diag_1, diag_counter.c$number_cases)
+plot_proportion(diag_counter.c,"Diagnostic", "Les diagnostics les plus fréquents au tennis",diag_counter.c$diag_1, diag_counter.c$number_cases)
 
 ```
 
 
 ```{r}
+# football américain : 1211
 
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1211,] %>%
+  group_by(year, diag_1) %>% summarise(number_cases = n()) %>% arrange(year, diag_1)
+diag_counter.c
+#mean(diag_counter.c[diag_counter.c$month ==9,]$number_cases)/mean(diag_counter.c$number_cases)
+
+diag_counter.c <- data_set_cor[data_set_cor$prod1 ==1211,] %>%
+  group_by(diag_1) %>% summarise(number_cases = n()) %>% arrange(number_cases)
+
+diag_counter.c<- diag_counter.c[diag_counter.c$number_cases>204,]
+
+plot_proportion(diag_counter.c,"Diagnostic", "Les diagnostics les plus fréquents au football américain",diag_counter.c$diag_1, diag_counter.c$number_cases)
+
+```
+
+```{r}
+# SKI SNOW BOMRE DE CAS SUR L'année
 hello <- merge(data_set_cor[data_set_cor$prod1 ==3283,], data_set_cor[data_set_cor$prod1 ==5031,], all =TRUE)
 
 hello
@@ -226,15 +269,40 @@ geom_line(aes()) +
 expand_limits(y = 0)+
   ggtitle("Nombre d'accidents en Ski et Snowboard chaque année")
 
-data.plot = subset(diag_counter, year == "2013")
- ggplot(data.plot,aes(x=day, y=number_diag))+
-geom_point(aes(color = diag_1)) +
-expand_limits(y = 0)+
-  ggtitle("Nombre d'observations")
 ```
 
 
+```{r}
+# SKI SNOW DIAG
 
+hello <- merge(data_set_cor[data_set_cor$prod1 ==3283,], data_set_cor[data_set_cor$prod1 ==5031,], all =TRUE)
+
+
+
+diag_counter.c <- hello %>%
+  group_by(diag_1) %>% summarise(number_cases = n()) %>% arrange(number_cases)
+diag_counter.c
+diag_counter.c<- diag_counter.c[diag_counter.c$number_cases>32,]
+
+plot_proportion(diag_counter.c,"Diagnostic", "Les diagnostics les plus fréquents au ski et snowboard",diag_counter.c$diag_1, diag_counter.c$number_cases)
+```
+
+
+```{r}
+# SPORT IN GENERAL 
+
+hello <- data_set_cor[data_set_cor$location=='Sports Or Recreation Place',]
+
+
+
+diag_counter.c <- hello %>%
+  group_by(diag_1) %>% summarise(number_cases = n()) %>% arrange(number_cases)
+diag_counter.c
+
+diag_counter.c<- diag_counter.c[diag_counter.c$number_cases>1253,]
+
+plot_proportion(diag_counter.c,"Diagnostic", "Les diagnostics les plus fréquents en sport",diag_counter.c$diag_1, diag_counter.c$number_cases)
+```
 
 ```{r}
 
