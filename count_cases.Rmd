@@ -100,24 +100,82 @@ print(rfnum)
 
 ```
 
+```{r}
+diag_counter.c <- data_set_cor %>% 
+  mutate(Monthday = ymd(paste0(month, "-", day))) %>%
+  group_by(year,month,diag_1) %>% summarise(number_diag = n()) %>% arrange(year,number_diag)
+diag_counter.c
+ggplot(diag_counter.c,aes(x=month, y=number_diag)) +
+facet_wrap(~year, scales = "free_x", ncol =5) +
+geom_line(aes(color = diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations pour tous les types de blessures'")
+
+data.plot <- subset(data_set_cor, year =='2013')
+data.plot<- data.plot  %>%  group_by(month,day, diag_1) %>% summarise(number_diag = n()) %>% arrange(month, number_diag)
+ data.plot
+ggplot(data.plot,aes(x=day, y=number_diag))+
+geom_point(aes(color =diag_1)) +
+expand_limits(y = 0)+
+  ggtitle("Nombre d'observations selon le jour dans le mois")
+```
+
+
+```{r}
+diag_counter.c <- data_set_cor %>%
+  group_by(year) %>% summarise(number_cases = n()) %>% arrange(year,number_cases)
+mean(diag_counter.c$number_cases)
+
+  ggplot(diag_counter.c,aes(x=year, y=number_cases))  +
+geom_line(aes())+
+expand_limits(y = 0)+
+  ggtitle("Nombre de cas par an")
+
+
+```
+
 
 ```{r}
 diag_counter.c <- data_set_cor %>% 
   mutate(Monthday = ymd(paste0(month, "-", day))) %>%
   group_by(year,Monthday,diag_1) %>% summarise(number_diag = n()) %>% arrange(year, Monthday,number_diag)
 diag_counter.c
-  ggplot(diag_counter,aes(x=month, y=number_diag)) +
+hey <- data_set_cor %>%group_by(diag_1)%>% summarise(number_diag = n())%>% arrange(number_diag)
+hey
+hello <- merge(data_set_cor[data_set_cor$diag_1 =='Strain, Sprain',], data_set_cor[data_set_cor$diag_1 =='Laceration',], all = TRUE)
+
+               
+hello2<- merge(hello, data_set_cor[data_set_cor$diag_1 =='Fracture',], all = TRUE)
+               
+hello3<- merge(hello2, data_set_cor[data_set_cor$diag_1 =='Contusion Or Abrasion',], all = TRUE)
+hello4 <- merge(hello3, data_set_cor[data_set_cor$diag_1 =='Inter Organ Injury',], all = TRUE)
+
+diag_counter.c <- hello4  %>%
+  group_by(year, month,diag_1) %>% summarise(number_diag = mean()) %>% arrange(year, month, number_diag)
+
+
+ggplot(diag_counter.c,aes(x=month, y=number_diag)) +
 facet_wrap(~year, scales = "free_x", ncol =5) +
 geom_line(aes(color = diag_1)) +
 expand_limits(y = 0)+
-  ggtitle("Nombre d'observations")
+  ggtitle("Nombre de cas par mois pour les 5 types de blessures les plus fréquents")
 
-data.plot = subset(diag_counter, year == "2013")
- ggplot(data.plot,aes(x=day, y=number_diag))+
-geom_point(aes(color = diag_1)) +
+hello <- merge(diag_counter[diag_counter$diag_1 =='Strain, Sprain',], diag_counter[diag_counter$diag_1 =='Laceration',], all = TRUE)
+hello2<- merge(hello, diag_counter[diag_counter$diag_1 =='Fracture',], all = TRUE)
+hello3<- merge(hello2, diag_counter[diag_counter$diag_1 =='Contusion Or Abrasion',], all = TRUE)
+hello4 <- merge(hello3, diag_counter[diag_counter$diag_1 =='Inter Organ Injury',], all = TRUE)
+hello4
+test <- hello4 %>% group_by(year, month, day, diag_1)%>% summarise(number_cases = n()) %>% arrange(day, number_cases)
+test2 <- test%>% group_by(day)%>% summarise(cases = mean(number_cases))
+test2
+
+ ggplot(test2,aes(x=day, y=cases))+
+geom_line(aes()) +
 expand_limits(y = 0)+
-  ggtitle("Nombre d'observations")
+  ggtitle("Nombre de cas par jour en moyenne selon le jour dans le mois")
 ```
+
+
 ```{r}
 diag_counter.c <- data_set_cor %>%
   group_by(year) %>% summarise(number_cases = n()) %>% arrange(year,number_cases)
