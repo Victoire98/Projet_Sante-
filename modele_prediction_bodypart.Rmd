@@ -51,26 +51,6 @@ save(data.model,file="dataset_model.Rdata")
 
 ---------------------------------
 summary
-## Tendance
-```{r}
-load("./dataset_model.Rdata")
-#### not important
-le_month <- data.model %>%
-  mutate(Year = date %>% year(),
-         Month = date %>% month(),
-         YearMonth = ymd(paste0(Year, "-", Month, "-01"))) %>%
-  group_by(Year, YearMonth) %>%
-  tally()
-head(le_month)  
-
-
-ggplot(le_month,aes(x=YearMonth, y=n)) +
-facet_wrap(~Year, scales = "free_x", ncol = 5) +
-geom_line() +
-expand_limits(y = 0)+
-  ggtitle("Nombre d'observations")
-
-```
 
 # ------ modele un jour
 
@@ -241,10 +221,14 @@ p2.t <- plot_confusion_matrix(out.pred2.t,test_data2$output,"CM of output (test_
 p3.t <- plot_confusion_matrix(out.pred3.t,test_data3$output,"CM of output (test_data) m3")
 
 library(cowplot)
-figure1 <- plot_grid(p1,p2,p3,p1.t,p2.t,p3.t,
-                    ncol = 3, nrow = 2,
+figure1 <- plot_grid(p1,p2,p3,
+                    ncol = 3, nrow = 1,
                     align = "hv")
 figure1
+figure2 <- plot_grid(p1.t,p2.t,p3.t,
+                    ncol = 3, nrow = 1,
+                    align = "hv")
+figure2
 
 save_plot("cm_rf_output.png", figure1, ncol = 3, nrow = 2)
 ```

@@ -124,6 +124,10 @@ data <- products$title[match(unlist(data.stats$prod1), products$code)]
 plot_proportion(get_proportion(data)[1:20,],"Product", "Des 20 produits les plus fréquents")
 #on laisse les codes?
 ```
+```{r}
+get_proportion(data)
+```
+
 ## Analyse par produit2
 ```{r} 
 #exclude 0, it's not a product
