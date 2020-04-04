@@ -76,24 +76,20 @@ dataFrame1<- subset(data.full, select = varset1)
 GKmatrix1<- GKtauDataframe(dataFrame1)
 plot(GKmatrix1, corrColors = "blue")
 ```
-> The off-diagonal elements contain the forward and backward tau measures for each variable pair. Specifically, the numerical values appearing in each row represent the association measure τ(x,y)τ(x,y) from the variable xx indicated in the row name to the variable yy indicated in the column name.
-
-> The most obvious feature from this plot is the fact that the variable odor is almost perfectly predictable (i.e. τ(x,y)=0.94) from class and this forward association is quite strong. The forward association suggest that x=odor (which has levels “almond”, “creosote”, “foul”, “anise”, “musty”, “nosmell”, “pungent”, “spicy”, “fishy”) is highly predictive of y=class (which has levels “edible”, “poisonous”). 
-
-> x=cap shape is weakly associated to y=cap surface (i.e.τ(x,y)=0.03) and (i.e.τ(y,x)=0.01). Thus, we can safely say that although these two variables are significant but they are association is weak; i.e. it will be difficult to predict one from another.
-
 
 ```{r}
 
 #model
 table(data.model$output)
 ```
-1. tomar la misma cantidad por cada clase
-2. nnet
+# Creation d'un dataset output
+
+Dataset avec 5000 observation par niveau du Output
+:: Obj: l'effect du desequilibre dans le dataset
 
 
 ```{r}
-
+## creation of the balanced dataset
 levels(data.model$output)[1] <- levels(data.model$output)[2]  # remove "25% body" factor, it becomes all body
 table(data.model$output)
 
@@ -133,15 +129,17 @@ plot_confusion_matrix <- function(out.pred,true.label,title){
 
 ## model output
 
+Chaque variable comme numerique et factor
+
 ```{r}
 load("dataset_balanced.Rdata")
 
 
-#split
+#get only the important variables
 dataset <- data.good[,c("date","age","diag","prod1","output")]
 dataset <- dataset[sample(1:nrow(dataset),nrow(dataset)),] #permute dataset
 
-#only the 52 products most populars
+#only the 52 products most populars ## random forest
 prod.plus <- as.data.frame(sort(table(dataset$prod1),decreasing = TRUE))[1:52,1]
 levels(dataset$prod1)[!levels(dataset$prod1) %in% prod.plus] <- "XX"
 print(str(dataset))
@@ -164,10 +162,14 @@ out.pred1.t <- predict(model.grf, test_data1[,-5]) #all data, mtry auto, 100nt
 
 ```
 #model numerique
+
+Variables numeriques 
+
 ```{r}
 dataset <- data.good[,c("date","age","diag","prod1","output")]
 dataset <- dataset[sample(1:nrow(dataset),nrow(dataset)),] #permute dataset
 
+#convert to numeric
 dataset$diag <-as.numeric(dataset$diag)
 dataset$prod1 <-as.numeric(dataset$prod1)
 
@@ -188,10 +190,12 @@ out.pred2.t <- predict(model.num, test_data2[,-5]) #all data, mtry auto, 100nt
 
 
 #model numerique aleatoire
+
+Not-balanced dataset 
 ```{r}
 load("dataset_model.Rdata")
 dataset <- data.model[,c("date","age","diag","prod1","output")]
-dataset <- dataset[sample(1:nrow(dataset),125000),] #permute dataset
+dataset <- dataset[sample(1:nrow(dataset),125000),] #125 samples aleatoires
 print(table(dataset$output))
 dataset$diag <-as.numeric(dataset$diag)
 dataset$prod1 <-as.numeric(dataset$prod1)
